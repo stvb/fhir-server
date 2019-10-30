@@ -42,7 +42,7 @@ namespace Microsoft.Health.Fhir.CosmosDb.Features.Search.Queries
             {
                 EnsureArg.IsNotNull(searchOptions, nameof(searchOptions));
 
-                if (searchOptions.CountOnly || calculateTotalCount)
+                if (!searchOptions.IncludeResults || calculateTotalCount)
                 {
                     AppendSelectFromRoot("VALUE COUNT(1)");
                 }

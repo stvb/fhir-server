@@ -26,15 +26,15 @@ namespace Microsoft.Health.Fhir.Core.Features.Search
         public string ContinuationToken { get; internal set; }
 
         /// <summary>
-        /// Gets a value indicating whether to only return the record count
+        /// Gets a value indicating whether or not the search results should be included.
         /// </summary>
-        public bool CountOnly { get; internal set; }
+        public bool IncludeResults { get; internal set; }
 
         /// <summary>
-        /// Indicates if the total number of resources that match the search parameters should be calculated.
+        /// Indicates if the number of matching search results should be accurately calculated, estimated or excluded.
         /// </summary>
         /// <remarks>The ability to retrieve an estimate of the total is yet to be implemented.</remarks>
-        public TotalType IncludeTotal { get; internal set; }
+        public CountType CountType { get; internal set; }
 
         /// <summary>
         /// Gets the maximum number of items to find.

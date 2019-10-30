@@ -92,15 +92,15 @@ namespace Microsoft.Health.Fhir.Core.Features.Search
                 }
                 else if (string.Compare(query.Item1, KnownQueryParameterNames.Total, StringComparison.OrdinalIgnoreCase) == 0)
                 {
-                    if (Enum.TryParse<TotalType>(query.Item2, true, out var totalType))
+                    if (Enum.TryParse<CountType>(query.Item2, true, out var countType))
                     {
                         // Estimate is not yet supported.
-                        if (totalType == TotalType.Estimate)
+                        if (countType == CountType.Estimate)
                         {
                             throw new SearchOperationNotSupportedException(Core.Resources.UnsupportedTotalParameter);
                         }
 
-                        searchOptions.IncludeTotal = totalType;
+                        searchOptions.CountType = countType;
                     }
                     else
                     {
@@ -130,8 +130,16 @@ namespace Microsoft.Health.Fhir.Core.Features.Search
                 searchOptions.MaxItemCount = searchParams.Count.Value;
             }
 
-            // Check to see if only the count should be returned
-            searchOptions.CountOnly = searchParams.Summary == SummaryType.Count;
+            if (searchParams.Summary == SummaryType.Count)
+            {
+                // Only exclude results if _summary = count.
+                searchOptions.IncludeResults = false;
+                searchOptions.CountType = CountType.Accurate;
+            }
+            else
+            {
+                searchOptions.IncludeResults = true;
+            }
 
             // If the resource type is not specified, then the common
             // search parameters should be used.

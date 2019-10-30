@@ -71,7 +71,7 @@ namespace Microsoft.Health.Fhir.SqlServer.Features.Search.Expressions.Visitors.Q
 
             string resourceTableAlias = "r";
 
-            if (searchOptions.CountOnly || _calculateTotalCount)
+            if (!searchOptions.IncludeResults || _calculateTotalCount)
             {
                 StringBuilder.AppendLine("SELECT COUNT(DISTINCT ").Append(V1.Resource.ResourceSurrogateId, resourceTableAlias).Append(")");
             }
@@ -120,7 +120,7 @@ namespace Microsoft.Health.Fhir.SqlServer.Features.Search.Expressions.Visitors.Q
                 }
             }
 
-            if (!searchOptions.CountOnly && !_calculateTotalCount)
+            if (searchOptions.IncludeResults && !_calculateTotalCount)
             {
                 StringBuilder.Append("ORDER BY ").Append(V1.Resource.ResourceSurrogateId, resourceTableAlias).AppendLine(" ASC");
             }

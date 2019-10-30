@@ -6,9 +6,9 @@
 namespace Microsoft.Health.Fhir.Core.Features.Search
 {
     /// <summary>
-    /// Enum for the _total parameter values.
+    /// Indicates if the number of matching search results should be accurately calculated, estimated, or excluded.
     /// </summary>
-    public enum TotalType
+    public enum CountType
     {
         // There is no need to populate the total count; the client will not use it.
         None = 0,

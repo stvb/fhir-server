@@ -76,7 +76,7 @@ namespace Microsoft.Health.Fhir.SqlServer.Features.Search
                 SearchResult searchResult;
 
                 // If we should include the total count of matching search results
-                if (searchOptions.IncludeTotal == TotalType.Accurate && !searchOptions.CountOnly)
+                if (searchOptions.CountType == CountType.Accurate && searchOptions.IncludeResults)
                 {
                     // Begin a transaction so we can perform two atomic reads.
                     using (var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted))
@@ -170,7 +170,7 @@ namespace Microsoft.Health.Fhir.SqlServer.Features.Search
 
                 using (var reader = await sqlCommand.ExecuteReaderAsync(CommandBehavior.SequentialAccess, cancellationToken))
                 {
-                    if (searchOptions.CountOnly || calculateTotalCount)
+                    if (!searchOptions.IncludeResults || calculateTotalCount)
                     {
                         await reader.ReadAsync(cancellationToken);
                         return new SearchResult(reader.GetInt32(0), searchOptions.UnsupportedSearchParams);

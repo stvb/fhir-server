@@ -45,7 +45,7 @@ namespace Microsoft.Health.Fhir.CosmosDb.Features.Search
                 searchOptions,
                 cancellationToken);
 
-            if (searchOptions.IncludeTotal == TotalType.Accurate && !searchOptions.CountOnly)
+            if (searchOptions.CountType == CountType.Accurate && searchOptions.IncludeResults)
             {
                 var totalSearchResult = await ExecuteSearchAsync(
                     _queryBuilder.BuildSqlQuerySpec(searchOptions, true),
@@ -82,7 +82,7 @@ namespace Microsoft.Health.Fhir.CosmosDb.Features.Search
                 RequestContinuation = searchOptions.ContinuationToken,
             };
 
-            if (searchOptions.CountOnly || calculateTotalCount)
+            if (!searchOptions.IncludeResults || calculateTotalCount)
             {
                 return new SearchResult(
                     (await _fhirDataStore.ExecuteDocumentQueryAsync<int>(sqlQuerySpec, feedOptions, cancellationToken)).Single(),

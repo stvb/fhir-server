@@ -17,7 +17,7 @@ namespace Microsoft.Health.Fhir.SqlServer.Features.Search.Expressions.Visitors
 
         public override Expression VisitSqlRoot(SqlRootExpression expression, SearchOptions context)
         {
-            if (context.CountOnly || expression.TableExpressions.Count == 0)
+            if (!context.IncludeResults || expression.TableExpressions.Count == 0)
             {
                 return expression;
             }
