@@ -274,6 +274,7 @@ namespace Microsoft.Health.Fhir.Tests.E2E.Rest.Search
             Bundle bundle = await Client.SearchAsync($"Patient?_tag={tag.Code}&_total=accurate");
 
             Assert.NotNull(bundle);
+            Assert.NotEmpty(bundle.Entry);
             Assert.Equal(numberOfResources, bundle.Total);
         }
 
@@ -298,6 +299,7 @@ namespace Microsoft.Health.Fhir.Tests.E2E.Rest.Search
             Bundle bundle = await Client.SearchAsync($"Patient?_tag={tag.Code}&_total=none");
 
             Assert.NotNull(bundle);
+            Assert.NotEmpty(bundle.Entry);
             Assert.Null(bundle.Total);
         }
 
