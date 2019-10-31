@@ -73,30 +73,7 @@ namespace Microsoft.Health.Fhir.SqlServer.Features.Search
             {
                 connection.Open();
 
-                SearchResult searchResult;
-
-                // If we should include the total count of matching search results
-                if (searchOptions.CountType == CountType.Accurate && searchOptions.IncludeResults)
-                {
-                    // Begin a transaction so we can perform two atomic reads.
-                    using (var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted))
-                    {
-                        searchResult = await SearchImpl(searchOptions, false, connection, cancellationToken, transaction);
-
-                        // Perform a second read to get the count.
-                        var countOnlySearchResult = await SearchImpl(searchOptions, false, connection, cancellationToken, transaction, true);
-
-                        searchResult.TotalCount = countOnlySearchResult.TotalCount;
-
-                        transaction.Commit();
-                    }
-                }
-                else
-                {
-                    searchResult = await SearchImpl(searchOptions, false, connection, cancellationToken);
-                }
-
-                return searchResult;
+                return await SearchImpl(searchOptions, false, connection, cancellationToken);
             }
         }
 
@@ -110,9 +87,11 @@ namespace Microsoft.Health.Fhir.SqlServer.Features.Search
             }
         }
 
-        private async Task<SearchResult> SearchImpl(SearchOptions searchOptions, bool historySearch, SqlConnection connection, CancellationToken cancellationToken, SqlTransaction transaction = null, bool calculateTotalCount = false)
+        private async Task<SearchResult> SearchImpl(SearchOptions searchOptions, bool isHistorySearch, SqlConnection connection, CancellationToken cancellationToken)
         {
             await _model.EnsureInitialized();
+
+            bool isCountSearch = searchOptions.CountType == CountType.Accurate;
 
             Expression searchExpression = searchOptions.Expression;
 
@@ -130,52 +109,40 @@ namespace Microsoft.Health.Fhir.SqlServer.Features.Search
                 }
             }
 
-            SqlRootExpression expression = (SqlRootExpression)searchExpression
-                                               ?.AcceptVisitor(LastUpdatedToResourceSurrogateIdRewriter.Instance)
-                                               .AcceptVisitor(DateTimeEqualityRewriter.Instance)
-                                               .AcceptVisitor(FlatteningRewriter.Instance)
-                                               .AcceptVisitor(_sqlRootExpressionRewriter)
-                                               .AcceptVisitor(TableExpressionCombiner.Instance)
-                                               .AcceptVisitor(DenormalizedPredicateRewriter.Instance)
-                                               .AcceptVisitor(NormalizedPredicateReorderer.Instance)
-                                               .AcceptVisitor(_chainFlatteningRewriter)
-                                               .AcceptVisitor(DateTimeBoundedRangeRewriter.Instance)
-                                               .AcceptVisitor(_stringOverflowRewriter)
-                                               .AcceptVisitor(NumericRangeRewriter.Instance)
-                                               .AcceptVisitor(MissingSearchParamVisitor.Instance)
-                                               .AcceptVisitor(IncludeDenormalizedRewriter.Instance)
-                                               .AcceptVisitor(TopRewriter.Instance, searchOptions)
-                                               .AcceptVisitor(IncludeRewriter.Instance)
-                                           ?? SqlRootExpression.WithDenormalizedExpressions();
+            SqlRootExpression expression = ConstructSqlRootExpression(isCountSearch, searchExpression);
 
             using (SqlCommand sqlCommand = connection.CreateCommand())
             {
-                // If we are sending multiple search queries in one transaction
-                if (transaction != null)
-                {
-                    sqlCommand.Transaction = transaction;
-                }
-
-                var stringBuilder = new IndentedStringBuilder(new StringBuilder());
-
-                EnableTimeAndIoMessageLogging(stringBuilder, connection);
-
-                var queryGenerator = new SqlQueryGenerator(stringBuilder, new SqlQueryParameterManager(sqlCommand.Parameters), _model, historySearch, calculateTotalCount);
-
-                expression.AcceptVisitor(queryGenerator, searchOptions);
-
-                sqlCommand.CommandText = stringBuilder.ToString();
-
+                sqlCommand.CommandText = GetSqlCommandText(searchOptions, isHistorySearch, connection, isCountSearch, expression, sqlCommand.Parameters);
                 LogSqlComand(sqlCommand);
+
+                int? count = null;
+
+                if (isCountSearch)
+                {
+                    using (var reader = await sqlCommand.ExecuteReaderAsync(CommandBehavior.SequentialAccess, cancellationToken))
+                    {
+                        await reader.ReadAsync(cancellationToken);
+                        var countResult = new SearchResult(reader.GetInt32(0), searchOptions.UnsupportedSearchParams);
+
+                        // If _summary = count
+                        if (!searchOptions.IncludeResults)
+                        {
+                            return countResult;
+                        }
+
+                        // Otherwise, store the count.
+                        count = countResult.TotalCount;
+
+                        // Update the SQL command to retrieve the search results.
+                        expression = ConstructSqlRootExpression(false, searchExpression);
+                        sqlCommand.CommandText = GetSqlCommandText(searchOptions, isHistorySearch, connection, false, expression, sqlCommand.Parameters);
+                        LogSqlComand(sqlCommand);
+                    }
+                }
 
                 using (var reader = await sqlCommand.ExecuteReaderAsync(CommandBehavior.SequentialAccess, cancellationToken))
                 {
-                    if (!searchOptions.IncludeResults || calculateTotalCount)
-                    {
-                        await reader.ReadAsync(cancellationToken);
-                        return new SearchResult(reader.GetInt32(0), searchOptions.UnsupportedSearchParams);
-                    }
-
                     var resources = new List<SearchResultEntry>(searchOptions.MaxItemCount);
                     long? newContinuationId = null;
                     bool moreResults = false;
@@ -246,9 +213,46 @@ namespace Microsoft.Health.Fhir.SqlServer.Features.Search
                         unsupportedSortingParameters = searchOptions.UnsupportedSortingParams;
                     }
 
-                    return new SearchResult(resources, searchOptions.UnsupportedSearchParams, unsupportedSortingParameters, moreResults ? newContinuationId.Value.ToString(CultureInfo.InvariantCulture) : null);
+                    var result = new SearchResult(resources, searchOptions.UnsupportedSearchParams, unsupportedSortingParameters, moreResults ? newContinuationId.Value.ToString(CultureInfo.InvariantCulture) : null);
+                    result.TotalCount = count;
+                    return result;
                 }
             }
+        }
+
+        private string GetSqlCommandText(SearchOptions searchOptions, bool isHistorySearch, SqlConnection connection, bool isCountSearch, SqlRootExpression expression, SqlParameterCollection parameters)
+        {
+            IndentedStringBuilder stringBuilder;
+            SqlQueryGenerator queryGenerator;
+
+            stringBuilder = new IndentedStringBuilder(new StringBuilder());
+            EnableTimeAndIoMessageLogging(stringBuilder, connection);
+
+            queryGenerator = new SqlQueryGenerator(stringBuilder, new SqlQueryParameterManager(parameters), _model, isHistorySearch, isCountSearch);
+            expression.AcceptVisitor(queryGenerator, searchOptions);
+
+            return stringBuilder.ToString();
+        }
+
+        private SqlRootExpression ConstructSqlRootExpression(bool isCountSearch, Expression searchExpression)
+        {
+            return (SqlRootExpression)searchExpression
+                                ?.AcceptVisitor(LastUpdatedToResourceSurrogateIdRewriter.Instance)
+                                .AcceptVisitor(DateTimeEqualityRewriter.Instance)
+                                .AcceptVisitor(FlatteningRewriter.Instance)
+                                .AcceptVisitor(_sqlRootExpressionRewriter)
+                                .AcceptVisitor(TableExpressionCombiner.Instance)
+                                .AcceptVisitor(DenormalizedPredicateRewriter.Instance)
+                                .AcceptVisitor(NormalizedPredicateReorderer.Instance)
+                                .AcceptVisitor(_chainFlatteningRewriter)
+                                .AcceptVisitor(DateTimeBoundedRangeRewriter.Instance)
+                                .AcceptVisitor(_stringOverflowRewriter)
+                                .AcceptVisitor(NumericRangeRewriter.Instance)
+                                .AcceptVisitor(MissingSearchParamVisitor.Instance)
+                                .AcceptVisitor(IncludeDenormalizedRewriter.Instance)
+                                .AcceptVisitor(TopRewriter.Instance, isCountSearch)
+                                .AcceptVisitor(IncludeRewriter.Instance)
+                            ?? SqlRootExpression.WithDenormalizedExpressions();
         }
 
         [Conditional("DEBUG")]

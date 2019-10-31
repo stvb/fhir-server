@@ -18,11 +18,11 @@ namespace Microsoft.Health.Fhir.SqlServer.Features.Search.Expressions.Visitors.Q
         private string _cteMainSelect; // This is represents the CTE that is the main selector for use with includes
         private List<string> _includeCtes;
         private readonly bool _isHistorySearch;
-        private readonly bool _calculateTotalCount;
+        private readonly bool _isCountSearch;
         private int _tableExpressionCounter = -1;
         private SqlRootExpression _rootExpression;
 
-        public SqlQueryGenerator(IndentedStringBuilder sb, SqlQueryParameterManager parameters, SqlServerFhirModel model, bool isHistorySearch, bool calculateTotalCount)
+        public SqlQueryGenerator(IndentedStringBuilder sb, SqlQueryParameterManager parameters, SqlServerFhirModel model, bool isHistorySearch, bool isCountSearch)
         {
             EnsureArg.IsNotNull(sb, nameof(sb));
             EnsureArg.IsNotNull(parameters, nameof(parameters));
@@ -32,7 +32,7 @@ namespace Microsoft.Health.Fhir.SqlServer.Features.Search.Expressions.Visitors.Q
             Parameters = parameters;
             Model = model;
             _isHistorySearch = isHistorySearch;
-            _calculateTotalCount = calculateTotalCount;
+            _isCountSearch = isCountSearch;
         }
 
         public IndentedStringBuilder StringBuilder { get; }
@@ -71,7 +71,7 @@ namespace Microsoft.Health.Fhir.SqlServer.Features.Search.Expressions.Visitors.Q
 
             string resourceTableAlias = "r";
 
-            if (!searchOptions.IncludeResults || _calculateTotalCount)
+            if (_isCountSearch)
             {
                 StringBuilder.AppendLine("SELECT COUNT(DISTINCT ").Append(V1.Resource.ResourceSurrogateId, resourceTableAlias).Append(")");
             }
@@ -120,7 +120,7 @@ namespace Microsoft.Health.Fhir.SqlServer.Features.Search.Expressions.Visitors.Q
                 }
             }
 
-            if (searchOptions.IncludeResults && !_calculateTotalCount)
+            if (!_isCountSearch)
             {
                 StringBuilder.Append("ORDER BY ").Append(V1.Resource.ResourceSurrogateId, resourceTableAlias).AppendLine(" ASC");
             }

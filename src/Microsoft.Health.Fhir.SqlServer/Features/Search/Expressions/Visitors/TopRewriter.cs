@@ -4,20 +4,19 @@
 // -------------------------------------------------------------------------------------------------
 
 using System.Collections.Generic;
-using Microsoft.Health.Fhir.Core.Features.Search;
 using Microsoft.Health.Fhir.Core.Features.Search.Expressions;
 
 namespace Microsoft.Health.Fhir.SqlServer.Features.Search.Expressions.Visitors
 {
-    internal class TopRewriter : SqlExpressionRewriter<SearchOptions>
+    internal class TopRewriter : SqlExpressionRewriter<bool>
     {
         public static readonly TopRewriter Instance = new TopRewriter();
 
         private static readonly TableExpression TopTableExpression = new TableExpression(null, null, null, TableExpressionKind.Top);
 
-        public override Expression VisitSqlRoot(SqlRootExpression expression, SearchOptions context)
+        public override Expression VisitSqlRoot(SqlRootExpression expression, bool isCountSearch)
         {
-            if (!context.IncludeResults || expression.TableExpressions.Count == 0)
+            if (isCountSearch || expression.TableExpressions.Count == 0)
             {
                 return expression;
             }
