@@ -18,19 +18,17 @@
                 "SqlServer:Initialize": "true",
                 "SqlServer:AllowDatabaseCreation": "true",
                 "DataStore": "SqlServer",
-                "ASPNETCORE_ENVIRONMENT": "development",
-                
+                "ASPNETCORE_ENVIRONMENT": "development"
             },
             "applicationUrl": "https://localhost:44348/"
         },
-        "PostgresqlServer": {
+        "Postgresql": {
             "commandName": "Project",
             "launchBrowser": true,
             "environmentVariables": {
-                "Postgresql:ConnectionString": "User ID=postgres;Password=postgres;Server=localhost;Port=5432;Database=FHIR_R4;Integrated Security=true;Pooling=true;",
+                "Postgresql:ConnectionString": "User ID=postgres;Password=postgres;Server=localhost;Port=5432;Database=fhirserver;Integrated Security=true;Pooling=true;",
                 "Postgresql:Initialize": "true",
                 "Postgresql:AllowDatabaseCreation": "true",
-                "TestAuthEnvironment:FilePath": "..//..//testauthenvironment.json",
                 "DataStore": "Postgresql",
                 "ASPNETCORE_ENVIRONMENT": "development"
             },
