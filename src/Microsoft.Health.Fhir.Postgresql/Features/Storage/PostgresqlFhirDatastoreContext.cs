@@ -34,5 +34,11 @@ namespace Microsoft.Health.Fhir.Postgresql.Features.Storage
                     x => x.MigrationsAssembly("Microsoft.Health.Fhir.Postgresql"));
             }
         }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<PgResource>()
+                .HasIndex(p => new { p.ResourceId, p.Version }).IsUnique();
+        }
     }
 }

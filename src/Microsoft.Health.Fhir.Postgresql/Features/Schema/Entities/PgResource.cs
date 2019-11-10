@@ -4,6 +4,7 @@
 // -------------------------------------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -11,14 +12,28 @@ namespace Microsoft.Health.Fhir.Postgresql.Features.Schema.Entities
 {
     public class PgResource
     {
+        public PgResource()
+        {
+            LastModifiedClaims = new List<string>();
+        }
+
         [Key]
         public Guid Id { get; set; }
 
         [Column(TypeName = "jsonb")]
         public string Resource { get; set; }
 
-        [Timestamp]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1819:Properties should not return arrays", Justification = "Default EF behavior.")]
-        public byte[] Timestamp { get; set; }
+        public string ResourceId { get; set; }
+
+        public bool IsDeleted { get; set; }
+
+        public string ResourceType { get; set; }
+
+        public DateTime LastModified { get; set; }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA2227", Justification = "No need for private setter.")]
+        public List<string> LastModifiedClaims { get; set; }
+
+        public double Version { get; set; }
     }
 }
