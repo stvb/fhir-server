@@ -31,7 +31,20 @@ namespace Microsoft.Health.Fhir.Web
                 .AddKeyVaultSecretStore(Configuration)
                 .AddAzureExportDestinationClient();
 
-            fhirServerBuilder.AddExperimentalSqlServer();
+            string dataStore = Configuration["DataStore"];
+            if (dataStore.Equals(KnownDataStores.CosmosDb, StringComparison.InvariantCultureIgnoreCase))
+            {
+                fhirServerBuilder.AddCosmosDb(Configuration);
+            }
+            else if (dataStore.Equals(KnownDataStores.SqlServer, StringComparison.InvariantCultureIgnoreCase))
+            {
+                fhirServerBuilder.AddExperimentalSqlServer();
+            }
+            else if (dataStore.Equals(KnownDataStores.PostgresqlServer, StringComparison.InvariantCultureIgnoreCase))
+            {
+                fhirServerBuilder.AddExperimentalPostgresql();
+            }
+
             AddApplicationInsightsTelemetry(services);
         }
 
