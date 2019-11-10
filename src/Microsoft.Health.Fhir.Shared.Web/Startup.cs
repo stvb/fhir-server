@@ -41,6 +41,10 @@ namespace Microsoft.Health.Fhir.Web
             {
                 fhirServerBuilder.AddExperimentalSqlServer();
             }
+            else if (dataStore.Equals(KnownDataStores.PostgresqlServer, StringComparison.InvariantCultureIgnoreCase))
+            {
+                fhirServerBuilder.AddExperimentalPostgresql();
+            }
 
             AddApplicationInsightsTelemetry(services);
         }
