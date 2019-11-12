@@ -30,7 +30,6 @@ namespace Microsoft.Health.Fhir.Postgresql.Features.Schema
                 context.Database.EnsureCreated();
                 context.Database.Migrate();
                 var tmp = context.Database.CanConnect();
-                context.Resources.Add(new PgResource());
                 context.SaveChanges();
             }
         }

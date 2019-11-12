@@ -60,7 +60,9 @@ namespace Microsoft.Health.Fhir.Postgresql.Features.Storage
                 using (var context = new PostgresqlFhirDatastoreContext(_configuration))
                 {
                     // check if there is an existing resource
-                    bool existing = await context.Resources.AnyAsync(x => x.ResourceId == resource.ResourceId, cancellationToken: cancellationToken);
+                    bool existing = await context.Resources
+                        .AsNoTracking()
+                        .AnyAsync(x => x.ResourceId == resource.ResourceId, cancellationToken: cancellationToken);
                     var version = (int)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
 
                     var newEntry = new PgResource
@@ -101,6 +103,7 @@ namespace Microsoft.Health.Fhir.Postgresql.Features.Storage
                 var q = context.Resources
                     .Where(x => x.ResourceType == key.ResourceType)
                     .Where(x => x.ResourceId == key.Id)
+                    .AsNoTracking()
                     .AsQueryable();
                 if (requestedVersion.HasValue)
                 {
