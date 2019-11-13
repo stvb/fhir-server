@@ -25,9 +25,8 @@ namespace Microsoft.Health.Fhir.Web
         // This method gets called by the runtime. Use this method to add services to the container.
         public virtual void ConfigureServices(IServiceCollection services)
         {
-            services.AddDevelopmentIdentityProvider(Configuration);
-
-            Core.Registration.IFhirServerBuilder fhirServerBuilder = services.AddFhirServer(Configuration)
+            Core.Registration.IFhirServerBuilder fhirServerBuilder = services
+                .AddFhirServer(Configuration)
                 .AddExportWorker()
                 .AddKeyVaultSecretStore(Configuration)
                 .AddAzureExportDestinationClient();
@@ -41,6 +40,10 @@ namespace Microsoft.Health.Fhir.Web
             {
                 fhirServerBuilder.AddExperimentalSqlServer();
             }
+            else if (dataStore.Equals(KnownDataStores.PostgresqlServer, StringComparison.InvariantCultureIgnoreCase))
+            {
+                fhirServerBuilder.AddExperimentalPostgresql();
+            }
 
             AddApplicationInsightsTelemetry(services);
         }
@@ -51,8 +54,6 @@ namespace Microsoft.Health.Fhir.Web
             app.UseApiNotifications();
 
             app.UseFhirServer();
-
-            app.UseDevelopmentIdentityProvider();
         }
 
         /// <summary>

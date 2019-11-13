@@ -14,11 +14,22 @@
             "commandName": "Project",
             "launchBrowser": true,
             "environmentVariables": {
-                "SqlServer:ConnectionString": "server=(local);Initial Catalog=FHIR_R4;Integrated Security=true",
+                "SqlServer:ConnectionString": "Server=tcp:mediligotest.database.windows.net,1433;Initial Catalog=FhirBingli;Persist Security Info=False;User ID=basistoegang;Password=CgMARVg77brf5BFFrjAL;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;",
                 "SqlServer:Initialize": "true",
                 "SqlServer:AllowDatabaseCreation": "true",
-                "TestAuthEnvironment:FilePath": "..//..//testauthenvironment.json",
                 "DataStore": "SqlServer",
+                "ASPNETCORE_ENVIRONMENT": "development"
+            },
+            "applicationUrl": "https://localhost:44348/"
+        },
+        "Postgresql": {
+            "commandName": "Project",
+            "launchBrowser": true,
+            "environmentVariables": {
+                "Postgresql:ConnectionString": "User ID=postgres;Password=postgres;Server=localhost;Port=5432;Database=fhirserver;Integrated Security=true;Pooling=true;",
+                "Postgresql:Initialize": "true",
+                "Postgresql:AllowDatabaseCreation": "true",
+                "DataStore": "Postgresql",
                 "ASPNETCORE_ENVIRONMENT": "development"
             },
             "applicationUrl": "https://localhost:44348/"
